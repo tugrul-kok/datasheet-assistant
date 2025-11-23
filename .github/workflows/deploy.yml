@@ -1,0 +1,26 @@
+name: Deploy to Hetzner VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /var/www/datasheet-assistant
+          git pull origin main
+          docker build -t datasheet-app .
+          docker stop my-rag-container || true
+          docker rm my-rag-container || true
+          docker run -d -p 8000:8000 --memory="1g" --cpus="1.0" --env-file .env --name my-rag-container datasheet-app

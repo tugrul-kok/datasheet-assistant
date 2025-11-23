@@ -14,3 +14,4 @@ mlruns/
 
 # Mac/Windows gereksiz dosyaları
 .DS_Store
+*.md
