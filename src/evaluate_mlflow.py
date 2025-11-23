@@ -18,7 +18,7 @@ from src.rag import get_rag_chain
 
 # --- AYARLAR ---
 EXPERIMENT_NAME = "Datasheet_RAG_v1"
-RUN_NAME = "Baseline_Mistral_Chunk2000"
+RUN_NAME = "Prompt_Tuning_k6"
 EVAL_DATASET = [
     # Datasheet'e uygun GERÇEK teknik sorular
     "What is the maximum clock frequency for the APB2 bus?",
@@ -44,9 +44,8 @@ def run_experiment():
         # 2. Parametreleri Logla (Bunlar ingest.py ve rag.py içindeki ayarların)
         # İleride bunları config dosyasından çekeceğiz
         mlflow.log_param("chunk_size", 2000)
-        mlflow.log_param("chunk_overlap", 100)
-        mlflow.log_param("model", "mistral-small")
-        mlflow.log_param("k_retrieval", 3)
+        mlflow.log_param("k_retrieval", 6)      # 3 -> 6 oldu
+        mlflow.log_param("prompt_strategy", "senior_engineer_persona") # Yeni strateji
 
         # 3. Zinciri Yükle ve Soruları Sor
         chain = get_rag_chain()
