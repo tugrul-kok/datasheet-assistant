@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datasheet Assistant | Powered by Mistral</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .chat-bubble { max-width: 80%; padding: 12px; border-radius: 12px; margin-bottom: 10px; }
+        .user-bubble { background-color: #3b82f6; color: white; align-self: flex-end; margin-left: auto; }
+        .bot-bubble { background-color: #1e293b; border: 1px solid #334155; align-self: flex-start; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: none;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <div class="w-full md:w-1/3 p-6 border-r border-gray-700 overflow-y-auto hidden md:block bg-slate-900">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-blue-400 mb-2"><i class="fas fa-microchip"></i> Datasheet AI</h1>
+            <p class="text-sm text-gray-400">RAG Pipeline powered by <span class="text-orange-400 font-bold">Mistral Small</span></p>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-lg font-semibold text-white mb-2">⚡ The Engineering Challenge</h3>
+            <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-sm">
+                <p class="font-bold text-red-400 mb-1">🔴 The Pain Point:</p>
+                <p class="mb-3 text-gray-300">
+                    Embedded engineers waste hours searching through <strong>2000+ page Reference Manuals</strong>. 
+                    Finding specific Pinout or Register maps in complex tables is slow and kills the development flow.
+                </p>
+                
+                <p class="font-bold text-green-400 mb-1">🟢 The Solution:</p>
+                <p class="text-gray-300">
+                    We built a <strong>Mistral-powered RAG pipeline</strong> optimized for tabular data. 
+                    It treats datasheets as a database, allowing engineers to query specs instantly with <strong>100% faithfulness</strong>.
+                </p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-white mb-2">Why Mistral?</h3>
+            <ul class="list-disc list-inside text-sm text-gray-300 space-y-2">
+                <li>Superior reasoning for technical docs.</li>
+                <li>High context window for long datasheets.</li>
+                <li>Efficient inference latency.</li>
+            </ul>
+        </div>
+
+        <div class="absolute bottom-6 text-xs text-gray-500">
+            Developed by <a href="https://tugrul.app" target="_blank" class="underline hover:text-blue-400">Tugrul KOK</a>
+        </div>
+    </div>
+
+    <div class="w-full md:w-2/3 flex flex-col bg-slate-950">
+        <div class="md:hidden p-4 bg-slate-900 border-b border-gray-700 flex justify-between items-center">
+            <span class="font-bold text-blue-400">Datasheet AI</span>
+            <span class="text-xs text-orange-400 border border-orange-400 px-2 py-0.5 rounded">Mistral Inside</span>
+        </div>
+
+        <div id="chat-container" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-4">
+            <div class="bot-bubble chat-bubble">
+                Hello! I am an AI assistant specialized in technical datasheets. <br>
+                I am running on <b>Mistral Small</b>. Ask me about pin configurations, voltages, or registers!
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-900 border-t border-gray-700">
+            <form id="chat-form" class="flex gap-2">
+                <input type="text" id="user-input" class="flex-1 bg-slate-800 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="Ex: What is the function of Pin PA9?">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition flex items-center justify-center min-w-[80px]">
+                    <span id="btn-text"><i class="fas fa-paper-plane"></i></span>
+                    <div id="loader" class="loader"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('user-input');
+        const chatContainer = document.getElementById('chat-container');
+        const loader = document.getElementById('loader');
+        const btnText = document.getElementById('btn-text');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add User Message
+            appendMessage(message, 'user-bubble');
+            input.value = '';
+            
+            // Loading State
+            btnText.style.display = 'none';
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: message })
+                });
+                const data = await response.json();
+                
+                // Format sources
+                let sourceText = "";
+                if(data.sources && data.sources.length > 0) {
+                    sourceText = `<div class="mt-2 pt-2 border-t border-gray-600 text-xs text-gray-400">Sources: ${data.sources.length} segments found.</div>`;
+                }
+
+                appendMessage(data.answer + sourceText, 'bot-bubble');
+            } catch (error) {
+                appendMessage("Error connecting to the server.", 'bot-bubble text-red-400');
+            } finally {
+                btnText.style.display = 'block';
+                loader.style.display = 'none';
+            }
+        });
+
+        function appendMessage(html, className) {
+            const div = document.createElement('div');
+            div.className = `chat-bubble ${className}`;
+            div.innerHTML = html;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    </script>
+</body>
+</html>
