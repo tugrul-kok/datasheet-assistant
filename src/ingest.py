@@ -18,10 +18,11 @@ def ingest_data():
     documents = loader.load()
     
     # 2. Metni Parçala (Chunking)
-    print("✂️  Metin parçalanıyor...")
+    print("✂️  Metin parçalanıyor (Optimize Edilmiş Ayarlar)...")
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=100
+        chunk_size=2000,      # Eskiden 1000 idi
+        chunk_overlap=200,    # Eskiden 100 idi (Bağlam kopmasın diye artırdık)
+        separators=["\n\n", "\n", " ", ""] # Öncelik satır sonlarına verilir
     )
     chunks = text_splitter.split_documents(documents)
     

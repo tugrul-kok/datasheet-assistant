@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Kaynak kodları kopyala
 COPY . .
 
+RUN python src/ingest.py
+
 # 6. Uygulamanın çalışacağı portu aç
 EXPOSE 8000
 
