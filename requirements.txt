@@ -1,0 +1,28 @@
+# Core LangChain packages
+langchain
+langchain-community
+langchain-core
+langchain-mistralai
+langchain-text-splitters
+
+# Vector Database
+chromadb
+
+# Web Framework
+fastapi
+uvicorn
+
+# Environment variables
+python-dotenv
+
+# PDF Processing
+pypdf
+
+# Evaluation & ML
+pandas
+datasets
+ragas
+mlflow
+
+# Data validation (required by FastAPI)
+pydantic

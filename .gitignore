@@ -1,0 +1,16 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Ortam değişkenleri (ÇOK ÖNEMLİ)
+.env
+venv/
+.venv/
+
+# Veritabanı ve Loglar
+chroma_db/
+mlruns/
+*.csv
+
+# Mac/Windows gereksiz dosyaları
+.DS_Store
