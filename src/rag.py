@@ -24,25 +24,33 @@ def semantic_router(query):
     print(f"🤔 Router Düşünüyor: '{query}'")
     
     router_template = """
-    You are an expert intent classifier.
-    Classify the user question into one of the following document keys:
-    
-    - stm32f4.pdf (Keywords: F4, F407, Discovery, 168MHz, DSP, Cortex-M4)
-    - stm32f1.pdf (Keywords: F1, F103, Blue Pill, 72MHz, Cortex-M3)
-    - bg96.pdf (Keywords: Modem, LTE, Cellular, NB-IoT, Cat M1, GNSS, Quectel)
-    - stm32u5.pdf (Keywords: U5, Low Power, Cortex-M33)
-    - auto (If the question is general or ambiguous)
+        You are an expert intent classifier for an embedded systems RAG bot.
+        Your task is to route the user's question to the single most relevant datasheet.
 
-    Examples:
-    Q: What is the clock speed of F4? -> stm32f4.pdf
-    Q: Does the modem support GPS? -> bg96.pdf
-    Q: What is an interrupt? -> auto
+        --- DOCUMENT DEFINITIONS ---
+        1. stm32f4.pdf: High-performance, DSP, FPU, 168MHz, Cortex-M4, Discovery Board.
+        2. stm32f1.pdf: Entry-level, Blue Pill, 72MHz, Cortex-M3, Basic Peripherals.
+        3. bg96.pdf: Cellular, LTE, Cat M1, NB-IoT, GNSS, Modem, AT Commands, SIM card.
+        4. stm32u5.pdf: Ultra-low power, Cortex-M33, Security, TrustZone.
+        
+        --- RULES ---
+        - If the question mentions specific part numbers (e.g., "F407", "F103"), route to that document.
+        - If the question is about "Modem", "Network", "Signal" or "LTE", route to bg96.pdf.
+        - If the question is generic (e.g., "What is a GPIO?", "How does I2C work?"), route to "auto".
+        - If you are unsure, choose "auto" (Global Search).
 
-    Question: {question}
-    
-    Return ONLY the filename (or 'auto'). Do not explain.
-    """
-    
+        --- EXAMPLES ---
+        Q: "What is the max clock of F4?" -> stm32f4.pdf
+        Q: "Does the Bluepill support CAN?" -> stm32f1.pdf
+        Q: "Power consumption in PSM mode" -> bg96.pdf (Specific to cellular features)
+        Q: "What is SPI?" -> auto
+        Q: "List all pin functions" -> auto
+
+        Question: {question}
+        
+        Return ONLY the filename (or 'auto'). Do not explain.
+        """
+        
     prompt = ChatPromptTemplate.from_template(router_template)
     chain = prompt | llm | StrOutputParser()
     

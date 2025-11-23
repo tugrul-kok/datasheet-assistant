@@ -124,7 +124,8 @@ def run_experiment():
             "question": [],
             "answer": [],
             "contexts": [],
-            "doc_filter": [] # Hangi filtreyle sorduğumuzu da kaydedelim
+            "doc_filter": [],
+            "routed_to": []  # YENİ KOLON
         }
 
         print("🤖 Sorular soruluyor (Multi-Doc)...")
@@ -132,16 +133,15 @@ def run_experiment():
             q = scenario["question"]
             f = scenario["doc_filter"]
             
-            print(f"   👉 Soru: {q} | Filtre: {f}")
-            
-            # Yeni ask_question fonksiyonunu kullanıyoruz
+            # ask_question fonksiyonu artık 'routed_to' döndürüyor, onu yakalayalım
             response = ask_question(query=q, doc_filter=f)
             
             results["question"].append(q)
             results["answer"].append(response["answer"])
             results["doc_filter"].append(f)
+            # Router nereye karar verdi? (Eğer manuel filtre varsa aynısı olur, auto ise router kararı olur)
+            results["routed_to"].append(response.get("routed_to", f)) 
             
-            # Context'leri listeye çevir
             context_list = [doc.page_content for doc in response["source_documents"]]
             results["contexts"].append(context_list)
 
