@@ -3,68 +3,87 @@ from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI, MistralAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
 DB_PATH = "chroma_db"
 
-def get_rag_chain():
-    # 1. Kayıtlı Veritabanını Bağla
-    embedding_function = MistralAIEmbeddings()
-    vector_db = Chroma(persist_directory=DB_PATH, embedding_function=embedding_function)
+# Global değişkenler (Her istekte tekrar yüklememek için)
+embedding_function = MistralAIEmbeddings()
+vector_db = Chroma(persist_directory=DB_PATH, embedding_function=embedding_function)
+llm = ChatMistralAI(model="mistral-small", temperature=0.0)
+
+def get_rag_chain(doc_filter=None):
+    """
+    doc_filter: 'stm32f4.pdf' gibi dosya adı veya 'auto' olabilir.
+    """
     
-    # 2. Retriever (Getirici) Ayarla - DEĞİŞİKLİK BURADA
-    # k=3 yetersiz kalıyordu, k=6 yaparak modele daha fazla "çevre bilgisi" veriyoruz.
-    retriever = vector_db.as_retriever(search_kwargs={"k": 6})
+    # 1. Filtreleme Mantığı (Metadata Filtering)
+    search_kwargs = {"k": 6}
     
-    # 3. LLM Tanımla
-    llm = ChatMistralAI(model="mistral-small", temperature=0.0) # Biraz yaratıcılık için 0.1
+    if doc_filter and doc_filter != "auto":
+        # ChromaDB'de kaynaklar genellikle "data/dosyaadi.pdf" olarak saklanır
+        # Bu yüzden filtreyi tam yola göre yapıyoruz
+        source_path = f"data/{doc_filter}"
+        search_kwargs["filter"] = {"source": source_path}
+        print(f"🔍 Filtering Context: Only using {source_path}")
+    else:
+        print("🔍 Context: Auto (Searching all docs)")
+
+    # 2. Retriever'ı Dinamik Oluştur
+    retriever = vector_db.as_retriever(search_kwargs=search_kwargs)
     
-    # 4. Prompt Template Oluştur (PROMPT ENGINEERING)
-    # Modele bir "Persona" veriyoruz ve formatı zorluyoruz.
+    # 3. Prompt (Negatif Örnekli ve Otoriter)
     template = """
-    You are a Senior Embedded Systems Engineer assisting a developer.
-    Use the following context to answer the question accurately and concisely.
+    You are a Senior Embedded Systems Engineer. Answer based ONLY on the provided context.
     
-    --- EXAMPLES OF GOOD ANSWERS ---
+    --- EXAMPLES ---
+    Q: What is the alternate function of PA9?
+    A: According to [Table 9], PA9 corresponds to USART1_TX.
     
-    Question: What is the alternate function of PA9?
-    Answer: According to the datasheet table [Table 9], Pin PA9 corresponds to the alternate function USART1_TX. It is 5V tolerant.
-    
-    Question: What is the price of the STM32F407?
-    Answer: I cannot find pricing information in the provided datasheet context. Please check external distributor sources.
-    
-    --- END OF EXAMPLES ---
+    Q: What is the price?
+    A: I cannot find pricing info in the datasheet.
+    --- END EXAMPLES ---
 
     Rules:
-    1. If the context does NOT contain the answer, explicitly state that you cannot find it. DO NOT Hallucinate.
-    2. Mimic the structure of the positive example above for valid answers.
-    3. Use the retrieved context ONLY.
+    1. If the context is empty or irrelevant, say "I cannot find this information in the selected document."
+    2. Be precise.
     
     Context:
     {context}
     
     Question: {input}
     
-    Detailed Answer:
+    Answer:
     """
-    
     prompt = ChatPromptTemplate.from_template(template)
-    
-    # 5. RAG Chain Oluştur
+
+    # 4. Chain Oluştur (LCEL Formatı - Daha Modern)
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
+
+    rag_chain = (
+        {"context": retriever | format_docs, "input": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
     
-    def rag_with_sources(query):
-        docs = retriever.invoke(query)
-        context = format_docs(docs)
-        messages = prompt.format_messages(context=context, input=query)
-        response = llm.invoke(messages)
-        answer = response.content if hasattr(response, 'content') else str(response)
-        
-        return {
-            "answer": answer,
-            "source_documents": docs
-        }
+    # Kaynakları da döndürmek için özel bir yapı döndürüyoruz
+    return rag_chain, retriever
+
+def ask_question(query, doc_filter="auto"):
+    chain, retriever = get_rag_chain(doc_filter)
     
-    return rag_with_sources
+    # Cevabı al
+    answer = chain.invoke(query)
+    
+    # Kaynakları manuel çek (Chain içinde kaybolmasın diye)
+    source_docs = retriever.invoke(query)
+    
+    return {
+        "answer": answer,
+        "source_documents": source_docs
+    }

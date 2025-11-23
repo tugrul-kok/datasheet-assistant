@@ -69,8 +69,22 @@
 
         <div class="p-4 bg-slate-900 border-t border-gray-700">
             <form id="chat-form" class="flex gap-2">
-                <input type="text" id="user-input" class="flex-1 bg-slate-800 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="Ex: What is the function of Pin PA9?">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition flex items-center justify-center min-w-[80px]">
+                <div class="relative">
+                    <select id="doc-select" class="appearance-none bg-slate-800 border border-gray-600 text-white rounded-lg pl-4 pr-8 py-2 focus:outline-none focus:border-blue-500 cursor-pointer h-full">
+                        <option value="auto">🤖 Auto (All)</option>
+                        <option value="stm32f4.pdf">⚡ STM32 F4</option>
+                        <option value="stm32f1.pdf">🔵 STM32 F1 (BluePill)</option>
+                        <option value="stm32u5.pdf">🔋 STM32 U5</option>
+                        <option value="bg96.pdf">📡 Quectel BG96</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+
+                <input type="text" id="user-input" class="flex-1 bg-slate-800 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="Ask about registers, pins, or power...">
+                
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition flex items-center justify-center min-w-[60px]">
                     <span id="btn-text"><i class="fas fa-paper-plane"></i></span>
                     <div id="loader" class="loader"></div>
                 </button>
@@ -84,10 +98,13 @@
         const chatContainer = document.getElementById('chat-container');
         const loader = document.getElementById('loader');
         const btnText = document.getElementById('btn-text');
+        const docSelect = document.getElementById('doc-select');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const message = input.value.trim();
+            const selectedDoc = docSelect.value;
+
             if (!message) return;
 
             // Add User Message
@@ -102,7 +119,7 @@
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: message })
+                    body: JSON.stringify({ query: message, doc_type: selectedDoc })
                 });
                 const data = await response.json();
                 

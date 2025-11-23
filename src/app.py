@@ -2,33 +2,45 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from src.rag import get_rag_chain
 import os
+import sys
+from pathlib import Path
 
-app = FastAPI(title="MLOps RAG Chatbot")
+# Proje root'unu Python path'ine ekle
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
-# Statik dosyaları bağla (CSS, JS, HTML için)
+# Import'u düzeltilmiş path ile yap
+try:
+    from src.rag import ask_question
+except ImportError:
+    # Eğer src.rag çalışmazsa, doğrudan rag'ı dene
+    from rag import ask_question
+
+app = FastAPI(title="Datasheet Assistant API")
+
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
-
-# Zinciri başlat
-chain = get_rag_chain()
 
 class QueryRequest(BaseModel):
     query: str
+    doc_type: str = "auto"  # Yeni parametre (Default: auto)
 
-# Ana Sayfa (HTML'i döndür)
 @app.get("/")
 async def read_root():
     return FileResponse('src/static/index.html')
 
 @app.post("/chat")
 def chat(request: QueryRequest):
-    response = chain(request.query)
+    # RAG fonksiyonunu filtre ile çağır
+    response = ask_question(request.query, request.doc_type)
     
     return {
         "answer": response["answer"],
-        # Kaynakları biraz temizleyelim
-        "sources": [doc.page_content[:100] + "..." for doc in response["source_documents"]]
+        # Kaynak dosya ismini de gösterelim ki kullanıcı doğru yerden geldiğini anlasın
+        "sources": [f"[{os.path.basename(doc.metadata.get('source', 'Unknown'))}] " + doc.page_content[:100] + "..." for doc in response["source_documents"]]
     }
 
-# Çalıştırmak için terminale: uvicorn src.app:app --reload
+# Uygulamayı doğrudan çalıştırmak için
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
