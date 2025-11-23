@@ -14,16 +14,37 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.rag import get_rag_chain
+# ARTIK get_rag_chain YERİNE ask_question KULLANIYORUZ
+from src.rag import ask_question
 
 # --- AYARLAR ---
-EXPERIMENT_NAME = "Datasheet_RAG_v1"
-RUN_NAME = "Prompt_Tuning_k6"
-EVAL_DATASET = [
-    # Datasheet'e uygun GERÇEK teknik sorular
-    "What is the maximum clock frequency for the APB2 bus?",
-    "Which pin is used for I2C1_SDA?",
-    "What is the typical power consumption in Standby mode?"
+EXPERIMENT_NAME = "Datasheet_RAG_MultiDoc"
+RUN_NAME = "Mistral_Routing_Test"
+
+# TEST SENARYOLARI (Soru + Hangi Dokümanda Aranacağı)
+# Bu liste senin sisteminin "Routing" zekasını test eder.
+EVAL_SCENARIOS = [
+    {
+        "question": "What is the maximum frequency of the processor?",
+        "doc_filter": "stm32f4.pdf", 
+        "expected_context_hint": "168 MHz" # Kendimize not
+    },
+    {
+        "question": "What are the power saving modes available?",
+        "doc_filter": "bg96.pdf",
+        "expected_context_hint": "PSM"
+    },
+    {
+        "question": "Describe the main features of the Blue Pill board microcontroller.",
+        "doc_filter": "stm32f1.pdf",
+        "expected_context_hint": "Cortex-M3"
+    },
+    # Auto Mod Testi
+    {
+        "question": "What is the function of PA9 in STM32F4?",
+        "doc_filter": "auto",
+        "expected_context_hint": "USART1"
+    }
 ]
 
 # Jüri Modeli Ayarları
@@ -35,32 +56,45 @@ answer_relevancy.llm = judge_llm
 answer_relevancy.embeddings = judge_embeddings
 
 def run_experiment():
-    # 1. MLflow Deneyini Ayarla
     mlflow.set_experiment(EXPERIMENT_NAME)
     
     with mlflow.start_run(run_name=RUN_NAME):
         print(f"🧪 Deney Başlıyor: {RUN_NAME}")
         
-        # 2. Parametreleri Logla (Bunlar ingest.py ve rag.py içindeki ayarların)
-        # İleride bunları config dosyasından çekeceğiz
-        mlflow.log_param("chunk_size", 2000)
-        mlflow.log_param("k_retrieval", 6)      # 3 -> 6 oldu
-        mlflow.log_param("prompt_strategy", "senior_engineer_persona") # Yeni strateji
+        # Parametreleri Logla
+        mlflow.log_param("strategy", "multi_doc_filtering")
+        mlflow.log_param("test_size", len(EVAL_SCENARIOS))
 
-        # 3. Zinciri Yükle ve Soruları Sor
-        chain = get_rag_chain()
-        results = {"question": [], "answer": [], "contexts": []}
+        results = {
+            "question": [],
+            "answer": [],
+            "contexts": [],
+            "doc_filter": [] # Hangi filtreyle sorduğumuzu da kaydedelim
+        }
 
-        print("🤖 Sorular soruluyor...")
-        for q in EVAL_DATASET:
-            response = chain(q)
+        print("🤖 Sorular soruluyor (Multi-Doc)...")
+        for scenario in EVAL_SCENARIOS:
+            q = scenario["question"]
+            f = scenario["doc_filter"]
+            
+            print(f"   👉 Soru: {q} | Filtre: {f}")
+            
+            # Yeni ask_question fonksiyonunu kullanıyoruz
+            response = ask_question(query=q, doc_filter=f)
+            
             results["question"].append(q)
             results["answer"].append(response["answer"])
-            results["contexts"].append([doc.page_content for doc in response["source_documents"]])
+            results["doc_filter"].append(f)
+            
+            # Context'leri listeye çevir
+            context_list = [doc.page_content for doc in response["source_documents"]]
+            results["contexts"].append(context_list)
 
-        # 4. Ragas ile Puanla
-        print("⚖️  Puanlanıyor...")
+        # Ragas için Dataset oluştur
+        # Not: 'doc_filter' kolonunu Ragas kullanmaz ama Pandas dataframe'de analiz için tutarız.
         dataset = Dataset.from_dict(results)
+
+        print("⚖️  Puanlanıyor...")
         scores = evaluate(
             dataset=dataset,
             metrics=[faithfulness, answer_relevancy],
@@ -68,23 +102,21 @@ def run_experiment():
             embeddings=judge_embeddings
         )
 
-        # 5. Metrikleri MLflow'a Kaydet
         print(f"📈 Skorlar: {scores}")
         
-        # Ortalama skorları hesapla (scores bir EvaluationResult objesi)
+        # Metrikleri Kaydet
         df = scores.to_pandas()
-        avg_faithfulness = df["faithfulness"].mean()
-        avg_answer_relevancy = df["answer_relevancy"].mean()
         
-        mlflow.log_metric("faithfulness", avg_faithfulness)
-        mlflow.log_metric("answer_relevancy", avg_answer_relevancy)
+        # Ortalama skorlar
+        mlflow.log_metric("avg_faithfulness", df["faithfulness"].mean())
+        mlflow.log_metric("avg_relevancy", df["answer_relevancy"].mean())
 
-        # 6. Sonuçları CSV yap ve Artifact olarak kaydet
-        csv_path = "eval_results.csv"
+        # Sonuçları Kaydet
+        csv_path = "eval_results_multidoc.csv"
         df.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path)
         
-        print("✅ Deney tamamlandı ve MLflow'a kaydedildi.")
+        print("✅ Multi-Doc Testi tamamlandı!")
 
 if __name__ == "__main__":
     run_experiment()
