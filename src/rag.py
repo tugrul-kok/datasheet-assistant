@@ -18,7 +18,7 @@ def get_rag_chain():
     retriever = vector_db.as_retriever(search_kwargs={"k": 6})
     
     # 3. LLM Tanımla
-    llm = ChatMistralAI(model="mistral-small", temperature=0.1) # Biraz yaratıcılık için 0.1
+    llm = ChatMistralAI(model="mistral-small", temperature=0.0) # Biraz yaratıcılık için 0.1
     
     # 4. Prompt Template Oluştur (PROMPT ENGINEERING)
     # Modele bir "Persona" veriyoruz ve formatı zorluyoruz.
@@ -31,17 +31,16 @@ def get_rag_chain():
     Question: What is the alternate function of PA9?
     Answer: According to the datasheet table [Table 9], Pin PA9 corresponds to the alternate function USART1_TX. It is 5V tolerant.
     
-    Question: What is the typical current consumption in Stop mode?
-    Answer: Based on the electrical characteristics section, the typical current consumption in Stop mode is 14 µA when VDD is 3.3V and 25°C.
+    Question: What is the price of the STM32F407?
+    Answer: I cannot find pricing information in the provided datasheet context. Please check external distributor sources.
     
     --- END OF EXAMPLES ---
 
     Rules:
-    1. Mimic the structure of the examples above.
-    2. Explicitly mention the table or section name if visible in the context.
-    3. If the answer is not in the context, say "I cannot find this specific information."
-    4. Do not make up information.
-
+    1. If the context does NOT contain the answer, explicitly state that you cannot find it. DO NOT Hallucinate.
+    2. Mimic the structure of the positive example above for valid answers.
+    3. Use the retrieved context ONLY.
+    
     Context:
     {context}
     
