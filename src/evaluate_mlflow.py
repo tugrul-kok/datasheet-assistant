@@ -24,26 +24,81 @@ RUN_NAME = "Mistral_Routing_Test"
 # TEST SENARYOLARI (Soru + Hangi Dokümanda Aranacağı)
 # Bu liste senin sisteminin "Routing" zekasını test eder.
 EVAL_SCENARIOS = [
+    # --- GRUP 1: STM32F407 (High Performance) ---
     {
-        "question": "What is the maximum frequency of the processor?",
-        "doc_filter": "stm32f4.pdf", 
-        "expected_context_hint": "168 MHz" # Kendimize not
+        "question": "What is the maximum CPU frequency?",
+        "doc_filter": "stm32f4.pdf",
+        "expected_context_hint": "168 MHz"
     },
     {
-        "question": "What are the power saving modes available?",
-        "doc_filter": "bg96.pdf",
-        "expected_context_hint": "PSM"
+        "question": "Which bus is connected to APB2?",
+        "doc_filter": "stm32f4.pdf",
+        "expected_context_hint": "high-speed"
     },
     {
-        "question": "Describe the main features of the Blue Pill board microcontroller.",
+        "question": "What is the function of pin PA9?",
+        "doc_filter": "stm32f4.pdf",
+        "expected_context_hint": "USART1"
+    },
+    
+    # --- GRUP 2: STM32F103 (Blue Pill - Entry Level) ---
+    {
+        "question": "What is the Cortex core used in this microcontroller?",
         "doc_filter": "stm32f1.pdf",
         "expected_context_hint": "Cortex-M3"
     },
-    # Auto Mod Testi
     {
-        "question": "What is the function of PA9 in STM32F4?",
+        "question": "Is the PA10 pin 5V tolerant?",
+        "doc_filter": "stm32f1.pdf",
+        "expected_context_hint": "tolerant" 
+    },
+    {
+        "question": "What is the flash memory size range?",
+        "doc_filter": "stm32f1.pdf",
+        "expected_context_hint": "64 or 128 Kbytes"
+    },
+
+    # --- GRUP 3: Quectel BG96 (Cellular IoT Modem) ---
+    {
+        "question": "Which LTE categories does the module support?",
+        "doc_filter": "bg96.pdf",
+        "expected_context_hint": "Cat M1"
+    },
+    {
+        "question": "What is the power supply voltage range (VBAT)?",
+        "doc_filter": "bg96.pdf",
+        "expected_context_hint": "3.3V"
+    },
+    {
+        "question": "Describe the PSM (Power Saving Mode) features.",
+        "doc_filter": "bg96.pdf",
+        "expected_context_hint": "power saving"
+    },
+
+    # --- GRUP 4: AUTO MODE (Routing Testi - En Kritiği) ---
+    # Burada doc_filter='auto' veriyoruz, sistemin kendisinin F4 dokümanına gitmesini bekliyoruz.
+    {
+        "question": "What is the clock speed of STM32F407?",
         "doc_filter": "auto",
-        "expected_context_hint": "USART1"
+        "expected_context_hint": "168 MHz"
+    },
+    {
+        "question": "Does BG96 support NB-IoT?",
+        "doc_filter": "auto",
+        "expected_context_hint": "NB-IoT"
+    },
+
+    # --- GRUP 5: NEGATİF TESTLER (Faithfulness Kontrolü) ---
+    # Modelin "Bilmiyorum" demesi gereken sorular.
+    {
+        "question": "What is the price of STM32F407 in 2024?",
+        "doc_filter": "stm32f4.pdf",
+        "expected_context_hint": "cannot find" # Cevabın negatif olmasını bekliyoruz
+    },
+    {
+        "question": "Does STM32F103 support WiFi connectivity?",
+        "doc_filter": "stm32f1.pdf",
+        "expected_context_hint": "cannot find" 
     }
 ]
 
