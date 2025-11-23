@@ -31,12 +31,15 @@ async def read_root():
 
 @app.post("/chat")
 def chat(request: QueryRequest):
-    # RAG fonksiyonunu filtre ile çağır
     response = ask_question(request.query, request.doc_type)
     
+    # Hangi dokümana yönlendiğini cevapta gösterelim (Debug için harika)
+    routing_info = ""
+    if request.doc_type == "auto" and "routed_to" in response:
+        routing_info = f"\n\n(🤖 Auto-routed to: {response['routed_to']})"
+    
     return {
-        "answer": response["answer"],
-        # Kaynak dosya ismini de gösterelim ki kullanıcı doğru yerden geldiğini anlasın
+        "answer": response["answer"] + routing_info,
         "sources": [f"[{os.path.basename(doc.metadata.get('source', 'Unknown'))}] " + doc.page_content[:100] + "..." for doc in response["source_documents"]]
     }
 
