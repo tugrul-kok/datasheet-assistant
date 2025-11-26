@@ -23,6 +23,6 @@ pandas
 datasets
 ragas
 mlflow
-
+flashrank
 # Data validation (required by FastAPI)
 pydantic
