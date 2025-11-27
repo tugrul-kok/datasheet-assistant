@@ -19,11 +19,12 @@ Unlike standard RAG demos, this project implements a full **MLOps lifecycle**, i
 The system is deployed on a Hetzner Cloud VPS using Docker containers.
 
 1.  **Data Ingestion:** PDF datasheets are parsed, chunked, and embedded into a ChromaDB vector store.
-2.  **RAG Pipeline:** - **Model:** `mistral-small` (via Mistral API).
+2.  **Semantic Router:** An intelligent LLM-based routing system that automatically determines which datasheet to search based on the user's query (e.g., routes "F407" questions to STM32F4, "modem" questions to BG96).
+3.  **RAG Pipeline:** - **Model:** `mistral-small` (via Mistral API).
     - **Embeddings:** `mistral-embed`.
     - **Framework:** LangChain & FastAPI.
-3.  **Evaluation (CI):** Every code push triggers an automated evaluation pipeline using **Ragas** (Faithfulness & Relevancy metrics) to prevent regression.
-4.  **Deployment (CD):** GitHub Actions automatically builds the Docker container and deploys it to the production server upon passing tests.
+4.  **Evaluation (CI):** Every code push triggers an automated evaluation pipeline using **Ragas** (Faithfulness & Relevancy metrics) to prevent regression.
+5.  **Deployment (CD):** GitHub Actions automatically builds the Docker container and deploys it to the production server upon passing tests.
 
 ---
 
@@ -37,7 +38,11 @@ Working with embedded systems (like STM32 or NXP) requires constant reference to
 ### 🟢 The Solution: Domain-Specific RAG Optimization
 We didn't just build a chatbot; we built an engineering tool.
 1.  **Table-Aware Ingestion:** We optimized the chunking strategy (2000 tokens with overlap) specifically to keep table rows and headers in the same semantic context.
-2.  **Feedback Loop:** We used **MLOps best practices** (MLflow & Ragas) to measure the model's performance on technical questions, improving "Faithfulness" from failing grades to a perfect 1.00 score.
+2.  **Semantic Routing:** An intelligent document router uses Mistral to analyze queries and automatically route them to the most relevant datasheet. For example:
+    - Questions mentioning "F407" or "F4" → Routes to STM32F4 datasheet
+    - Questions about "modem", "LTE", or "cellular" → Routes to BG96 datasheet
+    - Generic questions → Searches across all documents
+3.  **Feedback Loop:** We used **MLOps best practices** (MLflow & Ragas) to measure the model's performance on technical questions, improving "Faithfulness" from failing grades to a perfect 1.00 score.
 ---
 
 ## 🤖 Why Mistral AI?
@@ -65,3 +70,16 @@ pip install -r requirements.txt
 # 4. Run the pipeline
 python src/ingest.py  # Process Data
 uvicorn src.app:app --reload # Start Server
+```
+
+## 🧠 Key Features
+
+### Semantic Routing
+The system includes an intelligent semantic router that automatically determines which datasheet to search based on the user's query. When users select "Auto" mode, the router analyzes the question and routes it to the most relevant document:
+
+- **STM32F4**: High-performance, DSP, FPU, 168MHz, Cortex-M4
+- **STM32F1**: Entry-level, Blue Pill, 72MHz, Cortex-M3
+- **STM32U5**: Ultra-low power, Cortex-M33, Security, TrustZone
+- **BG96**: Cellular modem, LTE, Cat M1, NB-IoT, GNSS
+
+Users can also manually select a specific document or use "Auto" mode for intelligent routing.
