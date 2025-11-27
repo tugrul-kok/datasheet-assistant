@@ -36,13 +36,13 @@ Working with embedded systems (like STM32 or NXP) requires constant reference to
 - **The "Table" Issue:** Standard LLMs and search tools struggle to interpret **complex electrical tables**, often losing the connection between a Pin Name (e.g., PA9) and its Alternate Function.
 
 ### 🟢 The Solution: Domain-Specific RAG Optimization
-We didn't just build a chatbot; we built an engineering tool.
-1.  **Table-Aware Ingestion:** We optimized the chunking strategy (2000 tokens with overlap) specifically to keep table rows and headers in the same semantic context.
+I didn't just build a chatbot; I built an engineering tool.
+1.  **Table-Aware Ingestion:** I optimized the chunking strategy (2000 tokens with overlap) specifically to keep table rows and headers in the same semantic context.
 2.  **Semantic Routing:** An intelligent document router uses Mistral to analyze queries and automatically route them to the most relevant datasheet. For example:
     - Questions mentioning "F407" or "F4" → Routes to STM32F4 datasheet
     - Questions about "modem", "LTE", or "cellular" → Routes to BG96 datasheet
     - Generic questions → Searches across all documents
-3.  **Feedback Loop:** We used **MLOps best practices** (MLflow & Ragas) to measure the model's performance on technical questions, improving "Faithfulness" from failing grades to a perfect 1.00 score.
+3.  **Feedback Loop:** I used **MLOps best practices** (MLflow & Ragas) to measure the model's performance on technical questions, improving "Faithfulness" from failing grades to a perfect 0.92 score.
 ---
 
 ## 🤖 Why Mistral AI?
