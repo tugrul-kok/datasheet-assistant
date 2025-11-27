@@ -17,7 +17,7 @@
 </head>
 <body class="h-screen flex flex-col md:flex-row overflow-hidden">
 
-    <div class="w-full md:w-1/3 p-6 border-r border-gray-700 overflow-y-auto hidden md:block bg-slate-900">
+    <div class="w-full md:w-1/3 p-6 border-r border-gray-700 overflow-y-auto hidden md:flex flex-col bg-slate-900">
         <div class="mb-8">
             <h1 class="text-2xl font-bold text-blue-400 mb-2"><i class="fas fa-microchip"></i> Datasheet AI</h1>
             <p class="text-sm text-gray-400">RAG Pipeline powered by <span class="text-orange-400 font-bold">Mistral Small</span></p>
@@ -35,8 +35,22 @@
                 <p class="font-bold text-green-400 mb-1">🟢 The Solution:</p>
                 <p class="text-gray-300">
                     We built a <strong>Mistral-powered RAG pipeline</strong> optimized for tabular data. 
-                    It treats datasheets as a database, allowing engineers to query specs instantly with <strong>100% faithfulness</strong>.
+                    It treats datasheets as a database, allowing engineers to query specs instantly with <strong>92% faithfulness</strong>.
                 </p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-white mb-2">🧠 Smart Semantic Routing</h3>
+            <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-sm">
+                <p class="text-gray-300 mb-2">
+                    When you select <strong class="text-blue-400">🤖 Auto</strong>, our AI router intelligently determines which datasheet to search based on your question.
+                </p>
+                <ul class="list-disc list-inside text-xs text-gray-400 space-y-1 mt-2">
+                    <li>Mentions "F407" or "F4"? → Routes to STM32 F4</li>
+                    <li>Asks about "modem" or "LTE"? → Routes to BG96</li>
+                    <li>Generic questions? → Searches all documents</li>
+                </ul>
             </div>
         </div>
 
@@ -49,7 +63,7 @@
             </ul>
         </div>
 
-        <div class="absolute bottom-6 text-xs text-gray-500">
+        <div class="mt-auto pt-6 text-xs text-gray-500">
             Developed by <a href="https://tugrul.app" target="_blank" class="underline hover:text-blue-400">Tugrul KOK</a>
         </div>
     </div>
@@ -62,8 +76,13 @@
 
         <div id="chat-container" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-4">
             <div class="bot-bubble chat-bubble">
-                Hello! I am an AI assistant specialized in technical datasheets. <br>
-                I am running on <b>Mistral Small</b>. Ask me about pin configurations, voltages, or registers!
+                <div class="mb-2">
+                    Hello! I am an AI assistant specialized in technical datasheets. <br>
+                    I am running on <b>Mistral Small</b>. Ask me about pin configurations, voltages, or registers!
+                </div>
+                <div class="mt-3 pt-3 border-t border-gray-600 text-xs text-gray-400">
+                    <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Select <strong class="text-blue-400">🤖 Auto</strong> to let me intelligently route your question to the most relevant datasheet!
+                </div>
             </div>
         </div>
 
@@ -123,13 +142,38 @@
                 });
                 const data = await response.json();
                 
+                // Extract routing info if present
+                let answerText = data.answer;
+                let routingBadge = "";
+                
+                // Check if answer contains routing information
+                const routingMatch = answerText.match(/\(🤖 Auto-routed to: (.+?)\)/);
+                if (routingMatch) {
+                    const routedDoc = routingMatch[1];
+                    // Remove routing info from answer text
+                    answerText = answerText.replace(/\(🤖 Auto-routed to: .+?\)\s*/g, '');
+                    // Create a nice badge for routing
+                    const docNames = {
+                        'stm32f4.pdf': '⚡ STM32 F4',
+                        'stm32f1.pdf': '🔵 STM32 F1',
+                        'stm32u5.pdf': '🔋 STM32 U5',
+                        'bg96.pdf': '📡 Quectel BG96',
+                        'auto': '🌐 All Documents'
+                    };
+                    routingBadge = `<div class="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-blue-900/30 border border-blue-500/50 rounded text-xs text-blue-300">
+                        <i class="fas fa-route"></i> Auto-routed to: ${docNames[routedDoc] || routedDoc}
+                    </div>`;
+                }
+                
                 // Format sources
                 let sourceText = "";
                 if(data.sources && data.sources.length > 0) {
-                    sourceText = `<div class="mt-2 pt-2 border-t border-gray-600 text-xs text-gray-400">Sources: ${data.sources.length} segments found.</div>`;
+                    sourceText = `<div class="mt-2 pt-2 border-t border-gray-600 text-xs text-gray-400">
+                        <i class="fas fa-book"></i> Sources: ${data.sources.length} segment${data.sources.length > 1 ? 's' : ''} found
+                    </div>`;
                 }
 
-                appendMessage(data.answer + sourceText, 'bot-bubble');
+                appendMessage(answerText + routingBadge + sourceText, 'bot-bubble');
             } catch (error) {
                 appendMessage("Error connecting to the server.", 'bot-bubble text-red-400');
             } finally {
