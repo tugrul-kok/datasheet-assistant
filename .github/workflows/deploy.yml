@@ -24,3 +24,13 @@ jobs:
           docker stop my-rag-container || true
           docker rm my-rag-container || true
           docker run -d -p 8001:8001 --memory="1g" --cpus="1.0" --env-file .env --name my-rag-container datasheet-app
+          # Update nginx configuration to point to port 8001 (only in proxy_pass lines)
+          if [ -f /etc/nginx/sites-available/datasheet.tugrul.app ]; then
+            sudo sed -i 's|proxy_pass http://\(localhost\|127.0.0.1\):8000|proxy_pass http://\1:8001|g' /etc/nginx/sites-available/datasheet.tugrul.app
+            sudo nginx -t && sudo systemctl reload nginx || echo "Nginx config test failed"
+          elif [ -f /etc/nginx/conf.d/datasheet.tugrul.app.conf ]; then
+            sudo sed -i 's|proxy_pass http://\(localhost\|127.0.0.1\):8000|proxy_pass http://\1:8001|g' /etc/nginx/conf.d/datasheet.tugrul.app.conf
+            sudo nginx -t && sudo systemctl reload nginx || echo "Nginx config test failed"
+          else
+            echo "Nginx config file not found in standard locations. Please update manually."
+          fi

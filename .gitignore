@@ -16,3 +16,4 @@ mlruns/
 .DS_Store
 *.md
 !README.md
+check-nginx.sh
