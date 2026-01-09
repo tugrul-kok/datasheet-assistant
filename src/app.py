@@ -19,7 +19,14 @@ except ImportError:
 
 app = FastAPI(title="Datasheet Assistant API")
 
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
+# Use absolute path for static files to ensure it works in Docker
+static_dir = project_root / "src" / "static"
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "ok", "project_root": str(project_root)}
 
 class QueryRequest(BaseModel):
     query: str
@@ -27,7 +34,11 @@ class QueryRequest(BaseModel):
 
 @app.get("/")
 async def read_root():
-    return FileResponse('src/static/index.html')
+    # Use absolute path to ensure it works in Docker
+    index_path = project_root / "src" / "static" / "index.html"
+    if not index_path.exists():
+        raise FileNotFoundError(f"Index file not found at: {index_path}")
+    return FileResponse(str(index_path))
 
 @app.post("/chat")
 def chat(request: QueryRequest):

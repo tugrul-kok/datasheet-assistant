@@ -24,13 +24,30 @@ jobs:
           docker stop my-rag-container || true
           docker rm my-rag-container || true
           docker run -d -p 8001:8001 --memory="1g" --cpus="1.0" --env-file .env --name my-rag-container datasheet-app
-          # Update nginx configuration to point to port 8001 (only in proxy_pass lines)
-          if [ -f /etc/nginx/sites-available/datasheet.tugrul.app ]; then
-            sudo sed -i 's|proxy_pass http://\(localhost\|127.0.0.1\):8000|proxy_pass http://\1:8001|g' /etc/nginx/sites-available/datasheet.tugrul.app
-            sudo nginx -t && sudo systemctl reload nginx || echo "Nginx config test failed"
-          elif [ -f /etc/nginx/conf.d/datasheet.tugrul.app.conf ]; then
-            sudo sed -i 's|proxy_pass http://\(localhost\|127.0.0.1\):8000|proxy_pass http://\1:8001|g' /etc/nginx/conf.d/datasheet.tugrul.app.conf
-            sudo nginx -t && sudo systemctl reload nginx || echo "Nginx config test failed"
+          # Wait a moment for container to start
+          sleep 5
+          # Test if container is responding
+          curl -f http://localhost:8001/health || echo "Container health check failed"
+          # Update nginx configuration to point to port 8001
+          NGINX_CONFIG=$(sudo find /etc/nginx -type f \( -name "*datasheet*" -o -name "*tugrul*" \) 2>/dev/null | head -1)
+          if [ -z "$NGINX_CONFIG" ]; then
+            # Try common locations
+            for config in /etc/nginx/sites-available/datasheet.tugrul.app /etc/nginx/conf.d/datasheet.tugrul.app.conf /etc/nginx/sites-enabled/datasheet.tugrul.app; do
+              if [ -f "$config" ]; then
+                NGINX_CONFIG="$config"
+                break
+              fi
+            done
+          fi
+          if [ -n "$NGINX_CONFIG" ] && [ -f "$NGINX_CONFIG" ]; then
+            echo "Updating nginx config: $NGINX_CONFIG"
+            # Update any occurrence of :8000 to :8001 in proxy_pass lines
+            sudo sed -i 's|\(proxy_pass.*\):8000\(.*\)|\1:8001\2|g' "$NGINX_CONFIG"
+            # Also handle cases without http:// prefix
+            sudo sed -i 's|:8000;|:8001;|g' "$NGINX_CONFIG"
+            sudo nginx -t && sudo systemctl reload nginx || echo "Nginx config test/reload failed"
           else
-            echo "Nginx config file not found in standard locations. Please update manually."
+            echo "WARNING: Nginx config file not found. Please update manually."
+            echo "Searching for files containing 'datasheet' or 'tugrul':"
+            sudo grep -r "datasheet\|tugrul" /etc/nginx/ 2>/dev/null | head -5
           fi
