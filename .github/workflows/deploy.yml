@@ -31,8 +31,8 @@ jobs:
           # Update nginx configuration to point to port 8001
           NGINX_CONFIG=$(sudo find /etc/nginx -type f \( -name "*datasheet*" -o -name "*tugrul*" \) 2>/dev/null | head -1)
           if [ -z "$NGINX_CONFIG" ]; then
-            # Try common locations
-            for config in /etc/nginx/sites-available/datasheet.tugrul.app /etc/nginx/conf.d/datasheet.tugrul.app.conf /etc/nginx/sites-enabled/datasheet.tugrul.app; do
+            # Try common locations (including the actual file name found: "datasheet")
+            for config in /etc/nginx/sites-available/datasheet /etc/nginx/sites-enabled/datasheet /etc/nginx/sites-available/datasheet.tugrul.app /etc/nginx/conf.d/datasheet.tugrul.app.conf /etc/nginx/sites-enabled/datasheet.tugrul.app; do
               if [ -f "$config" ]; then
                 NGINX_CONFIG="$config"
                 break
