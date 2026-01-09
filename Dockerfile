@@ -16,8 +16,8 @@ COPY . .
 
 RUN python src/ingest.py
 
-# 6. Uygulamanın çalışacağı portu aç
-EXPOSE 8000
+# 6. Uygulamanın çalışacağı portu aç (PORT env var ile yapılandırılabilir, default: 8001)
+EXPOSE 8001
 
-# 7. Uygulamayı başlat
-CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# 7. Uygulamayı başlat (PORT env var kullanılır, yoksa 8001)
+CMD sh -c "uvicorn src.app:app --host 0.0.0.0 --port ${PORT:-8001} --workers 1"
